@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  GUIA JETSON ORIN NANO  ·  Red Tecnocreativa (CRTIC clean)
+  Construida sobre design-system/templates/crtic-report.html.
+  Shader y shell de vidrio intactos: solo se llenó el centro con el kit.
+  ============================================================================
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cómo dejar lista tu Jetson Orin Nano · CRTIC</title>
+<style>
+  :root {
+    /* CRTIC clean tokens (DESIGN.json) */
+    --snow: #F5F5F7;
+    --card: #FCFCFD;
+    --ink: #1D1D1F;
+    --ink-2: #6E6E73;
+    --hairline: #D2D2D7;
+    --accent: #FA4515;
+    --accent-hover: #E23C0F;
+
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 28px;
+    --r-full: 9999px;
+
+    --el-focal: 0 1px 2px rgba(0,0,0,.04), 0 40px 90px -30px rgba(0,0,0,.28);
+    --glow: 0 0 72px -10px color-mix(in srgb, var(--accent) 22%, transparent);
+
+    --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-wave: cubic-bezier(0.37, 0, 0.63, 1);
+
+    --sans: "Geist Variable", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--snow);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* living data field (the CRTIC shader) */
+  #field {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    display: block;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ink-2);
+    display: block;
+  }
+
+  .display {
+    font-size: clamp(2.75rem, 8vw, 5.5rem);
+    font-weight: 600;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  h2 {
+    font-size: clamp(1.7rem, 3.6vw, 2.6rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  h3 { font-size: 1.12rem; font-weight: 600; letter-spacing: -0.01em; }
+  p { color: var(--ink); }
+  .muted { color: var(--ink-2); }
+  .accent { color: var(--accent); }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: rgba(29,29,31,0.05); border: 1px solid var(--hairline);
+    padding: 0.05em 0.38em; border-radius: 5px;
+  }
+
+  /* top bar */
+  header.bar {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--snow) 68%, transparent);
+    backdrop-filter: saturate(1.2) blur(14px);
+    -webkit-backdrop-filter: saturate(1.2) blur(14px);
+    border-bottom: 1px solid color-mix(in srgb, var(--hairline) 70%, transparent);
+  }
+  .bar-inner { display: flex; align-items: center; justify-content: space-between; height: 58px; max-width: 1120px; margin: 0 auto; padding: 0 clamp(1.25rem, 5vw, 2rem); }
+  .mark { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; letter-spacing: -0.01em; }
+  .mark .logo-mark { height: 22px; width: auto; display: block; fill: var(--accent); }
+  .bar .v { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-2); letter-spacing: 0.08em; }
+
+  /* the centered glass sheet */
+  main.sheet {
+    position: relative;
+    z-index: 1;
+    max-width: 940px;
+    margin: clamp(1.75rem, 5vw, 4rem) auto clamp(3rem, 7vw, 5rem);
+    padding: 0 clamp(1.5rem, 5vw, 3.5rem);
+    background: rgba(252, 252, 253, 0.72);
+    backdrop-filter: saturate(1.25) blur(22px);
+    -webkit-backdrop-filter: saturate(1.25) blur(22px);
+    border: 1px solid rgba(210, 210, 215, 0.65);
+    border-radius: var(--r-xl);
+    box-shadow: var(--el-focal), var(--glow);
+  }
+
+  .prose { max-width: 64ch; }
+  .prose p + p { margin-top: 1rem; }
+
+  /* hero */
+  .hero { padding: clamp(3rem, 9vw, 6rem) 0 clamp(2.25rem, 5vw, 3.5rem); }
+  .hero .lead { font-size: clamp(1.15rem, 2.4vw, 1.5rem); line-height: 1.4; margin-top: 1.5rem; max-width: 34ch; }
+  .hero .meta { font-family: var(--mono); font-size: 0.75rem; color: var(--ink-2); margin-top: 2rem; letter-spacing: 0.04em; }
+  .hero .tag { display: inline-block; margin-top: 1.25rem; font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+  .hero .tag::after { content: ""; display: block; width: 44px; height: 2px; background: var(--accent); margin-top: 0.75rem; border-radius: var(--r-full); }
+
+  /* index (optional) */
+  .index { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; padding: 1.25rem 0 0; border-top: 1px solid var(--hairline); margin-top: 2rem; }
+  .index a { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; transition: color .2s var(--ease-wave); }
+  .index a:hover { color: var(--accent); }
+
+  /* sections */
+  section { padding: clamp(2.75rem, 7vw, 4.5rem) 0; border-top: 1px solid var(--hairline); }
+  .sec-head { margin-bottom: 2.25rem; }
+  .sec-head h2 { margin-top: 0.75rem; }
+  .sec-head .kicker { margin-top: 1rem; color: var(--ink-2); max-width: 58ch; }
+
+  /* focal card */
+  .focal {
+    background: var(--card);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-xl);
+    padding: clamp(1.75rem, 4vw, 2.75rem);
+    box-shadow: var(--el-focal), var(--glow);
+  }
+  .focal .verdicts { display: grid; grid-template-columns: 1fr; gap: 1.25rem; margin-top: 2rem; }
+  @media (min-width: 700px) { .focal .verdicts { grid-template-columns: 1fr 1fr; gap: 1.75rem 2.5rem; } }
+  .verdict h3 { display: flex; align-items: baseline; gap: 0.6rem; }
+  .verdict h3 .dot { width: 7px; height: 7px; border-radius: var(--r-full); background: var(--accent); flex: none; transform: translateY(-2px); }
+  .verdict p { color: var(--ink-2); margin-top: 0.4rem; font-size: 0.95rem; }
+  .focal .lead-line { font-size: clamp(1.2rem, 2.6vw, 1.6rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; margin-top: 1rem; text-wrap: balance; }
+
+  /* phases / timeline */
+  .phases { display: grid; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r-lg); overflow: hidden; }
+  .phase { background: var(--card); padding: clamp(1.2rem, 3vw, 1.75rem); display: grid; grid-template-columns: auto 1fr; gap: 1.25rem; align-items: start; }
+  .phase .code { font-family: var(--mono); font-size: 0.95rem; font-weight: 500; color: var(--ink-2); letter-spacing: 0.02em; padding-top: 0.15rem; }
+  .phase.active .code { color: var(--accent); }
+  .phase .q { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; }
+  .phase .d { color: var(--ink-2); font-size: 0.94rem; margin-top: 0.3rem; }
+  .phase .state { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-2); margin-top: 0.6rem; }
+  .phase.active .state { color: var(--accent); }
+
+  .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin-top: 1.5rem; font-family: var(--mono); font-size: 0.75rem; color: var(--ink-2); letter-spacing: 0.03em; }
+  .meta-row b { color: var(--ink); font-weight: 500; }
+
+  /* scope (two columns) */
+  .scope { display: grid; grid-template-columns: 1fr; gap: 2rem; }
+  @media (min-width: 700px) { .scope { grid-template-columns: 1fr 1fr; gap: 3rem; } }
+  .scope ul { list-style: none; margin-top: 1rem; display: grid; gap: 0.85rem; }
+  .scope li { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem; align-items: start; font-size: 0.96rem; }
+  .scope .in .m { color: var(--accent); font-weight: 600; }
+  .scope .out .m { color: var(--ink-2); }
+  .scope .out li { color: var(--ink-2); }
+  .col-label { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-2); }
+
+  /* list / backlog */
+  .backlog { display: grid; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); border-radius: var(--r-lg); overflow: hidden; }
+  .item { background: var(--card); padding: 1.05rem clamp(1.2rem, 3vw, 1.6rem); display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: baseline; }
+  .item .id { font-family: var(--mono); font-size: 0.8rem; color: var(--ink-2); letter-spacing: 0.02em; }
+  .item .t { font-size: 0.95rem; }
+  .item .t span { color: var(--ink-2); }
+  .item a.t { text-decoration: none; color: var(--ink); }
+  .item a.t:hover { color: var(--accent); }
+  .chip { font-family: var(--mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-2); border: 1px solid var(--hairline); border-radius: var(--r-full); padding: 0.2rem 0.6rem; white-space: nowrap; }
+
+  /* crosses / callouts */
+  .crosses { display: grid; gap: 1.5rem; }
+  @media (min-width: 700px) { .crosses { grid-template-columns: 1fr 1fr; gap: 1.5rem 2.5rem; } }
+  .cross { padding-top: 1.25rem; border-top: 2px solid var(--accent); }
+  .cross.soft { border-top-color: var(--hairline); }
+  .cross h3 { margin-bottom: 0.35rem; }
+  .cross .badge { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em; color: var(--accent); }
+  .cross.soft .badge { color: var(--ink-2); }
+  .cross p { color: var(--ink-2); font-size: 0.94rem; margin-top: 0.35rem; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--hairline); padding: clamp(2.75rem, 6vw, 4rem) 0 clamp(2rem, 4vw, 3rem); }
+  footer .grid { display: grid; gap: 2rem; }
+  @media (min-width: 700px) { footer .grid { grid-template-columns: 1.4fr 1fr; gap: 3rem; } }
+  footer .note { font-family: var(--mono); font-size: 0.73rem; color: var(--ink-2); letter-spacing: 0.03em; line-height: 1.9; }
+  footer .big { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 600; letter-spacing: -0.025em; }
+
+  /* reveal motion */
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.7s var(--ease-reveal), transform 0.7s var(--ease-reveal); }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="field" aria-hidden="true"></canvas>
+
+<header class="bar">
+  <div class="bar-inner">
+    <div class="mark"><svg class="logo-mark" viewBox="0 0 258 156" aria-hidden="true"><circle cx="40" cy="40" r="33"/><circle cx="120" cy="40" r="33"/><circle cx="200" cy="40" r="33"/><circle cx="120" cy="120" r="33"/><circle cx="200" cy="120" r="33"/><rect x="7" y="84" width="5" height="72"/><rect x="18" y="84" width="3" height="72"/><rect x="27" y="84" width="7" height="72"/><rect x="40" y="84" width="4" height="72"/><rect x="49" y="84" width="3" height="72"/><rect x="57" y="84" width="9" height="72"/><rect x="70" y="84" width="4" height="72"/><rect x="248" y="84" width="5" height="72"/></svg> CRTIC</div>
+    <div class="v">GUIA · JETSON ORIN NANO</div>
+  </div>
+</header>
+
+<main class="sheet">
+
+  <!-- ===== HERO ===== -->
+  <div class="hero">
+    <span class="eyebrow reveal">Configuración · Placa NVIDIA · Red Tecnocreativa</span>
+    <h1 class="display reveal" style="margin-top:1.5rem;">Cómo dejar lista tu Jetson Orin Nano</h1>
+    <p class="lead reveal">Del primer arranque al sistema corriendo desde un SSD NVMe, sin necesidad de un PC con Ubuntu.</p>
+    <p class="meta reveal">Sistema JetPack 6.2.1 → 6.2.2&nbsp;&nbsp;·&nbsp;&nbsp;Arranque SSD NVMe&nbsp;&nbsp;·&nbsp;&nbsp;Método microSD → SSD&nbsp;&nbsp;·&nbsp;&nbsp;Nivel Guiado</p>
+    <span class="tag reveal">Arrancas desde la microSD y luego mudas todo al SSD.</span>
+    <nav class="index reveal">
+      <a href="#s1">Por qué</a>
+      <a href="#s2">Regla de oro</a>
+      <a href="#s3">Antes de empezar</a>
+      <a href="#s4">Firmware</a>
+      <a href="#s5">microSD</a>
+      <a href="#s6">SSD</a>
+      <a href="#s7">Síntesis</a>
+    </nav>
+  </div>
+
+  <!-- ===== S1 · MARCO TECNOCREATIVO ===== -->
+  <section id="s1">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Por qué a la Red Tecnocreativa</span>
+      <h2>De la placa a la obra</h2>
+      <p class="kicker">La Orin Nano no es un servidor: es un cerebro de IA del tamaño de una palma, con 67 TOPS, que corre modelos en el sitio, sin nube y sin latencia. Para un ecosistema que mezcla código, imagen y espacio, eso cambia lo que se puede montar.</p>
+    </div>
+    <div class="focal reveal">
+      <span class="eyebrow">Dónde aterriza en los cuatro pilares</span>
+      <div class="verdicts">
+        <div class="verdict"><h3><span class="dot"></span> IA Generativa</h3><p>Modelos locales en tiempo real. Difusión, texto o audio generándose en el borde para piezas interactivas que no dependen de conexión.</p></div>
+        <div class="verdict"><h3><span class="dot"></span> IA Aplicada</h3><p>Visión por computador en vivo. El mismo stack que ya exploramos con <code>supervision</code> (detección, tracking, zonas) corre aquí sobre la cámara, en el sitio.</p></div>
+        <div class="verdict"><h3><span class="dot"></span> Diseño Computacional</h3><p>Sistemas que responden. Sensores, cámara o público alimentando geometría, sonido o luz generados en la placa.</p></div>
+        <div class="verdict"><h3><span class="dot"></span> Dirección de Arte</h3><p>Prototipo a obra sin fricción. Un kit reproducible que cualquiera del equipo deja listo con esta guía y lleva a exposición.</p></div>
+      </div>
+    </div>
+    <div class="prose reveal" style="margin-top:2rem;">
+      <p class="muted">En el fondo, esta guía es una receta de infraestructura compartible: quien la sigue termina con una estación de IA idéntica a la del resto del equipo. Reproducible, documentada y lista para promover al vault como referencia del ecosistema.</p>
+    </div>
+  </section>
+
+  <!-- ===== S2 · REGLA DE ORO + ESTRATEGIA ===== -->
+  <section id="s2">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Antes de tocar nada</span>
+      <h2>La única regla de oro</h2>
+    </div>
+    <div class="focal reveal">
+      <span class="eyebrow">Sin excepciones</span>
+      <p class="lead-line">Nunca desenchufes la placa mientras una actualización de firmware está en curso.</p>
+      <p class="muted" style="margin-top:0.75rem;">Puede reiniciarse varias veces sola. Déjala terminar. Es la causa número uno de placas que quedan pegadas sin arrancar.</p>
+    </div>
+    <div class="crosses reveal" style="margin-top:2rem;">
+      <div class="cross">
+        <span class="badge">La estrategia</span>
+        <h3>microSD primero, SSD después</h3>
+        <p>Arrancas desde la tarjeta, dejas el sistema estable, y recién ahí mudas todo al disco rápido con scripts probados.</p>
+      </div>
+      <div class="cross soft">
+        <span class="badge">El porqué</span>
+        <h3>Velocidad sin riesgo</h3>
+        <p>La microSD funciona pero es lenta, como trabajar desde un pendrive. El SSD NVMe es el destino final para contenedores, modelos y datasets.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== S3 · ANTES DE EMPEZAR ===== -->
+  <section id="s3">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Antes de empezar</span>
+      <h2>Lo que necesitas sobre la mesa</h2>
+    </div>
+    <div class="backlog reveal">
+      <div class="item"><span class="id">01</span><span class="t">Jetson Orin Nano y su fuente de poder de <span>19V</span></span><span class="chip">Hardware</span></div>
+      <div class="item"><span class="id">02</span><span class="t">Monitor con cable DisplayPort, más teclado y mouse</span><span class="chip">Periféricos</span></div>
+      <div class="item"><span class="id">03</span><span class="t">microSD de 64 GB o más <span>(UHS-1)</span></span><span class="chip">Medios</span></div>
+      <div class="item"><span class="id">04</span><span class="t">SSD NVMe M.2 en el slot Key-M <span>(parte inferior, con su tornillo)</span></span><span class="chip">Hardware</span></div>
+      <div class="item"><span class="id">05</span><span class="t">Balena Etcher instalado en tu Windows o Mac</span><span class="chip">Software</span></div>
+      <div class="item"><span class="id">06</span><span class="t">Imagen JetPack 6.2.1 <span>«SD Card Image» para Orin Nano</span></span><span class="chip">Descarga</span></div>
+    </div>
+  </section>
+
+  <!-- ===== S4 · FASE 1 FIRMWARE ===== -->
+  <section id="s4">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Fase uno</span>
+      <h2>Despertar la placa · el firmware</h2>
+      <p class="kicker">La Jetson viene con un «cerebro de arranque» de fábrica que puede ser demasiado viejo para el sistema nuevo. Primero revisamos si necesita actualización.</p>
+    </div>
+    <div class="phases reveal">
+      <div class="phase"><div class="code">01</div><div><div class="q">Conecta y enciende</div><div class="d">Placa al monitor por DisplayPort, teclado, y enchúfala.</div></div></div>
+      <div class="phase"><div class="code">02</div><div><div class="q">Entra al menú UEFI</div><div class="d">Al aparecer el logo de NVIDIA, presiona <code>Esc</code> varias veces seguidas.</div></div></div>
+      <div class="phase"><div class="code">03</div><div><div class="q">Lee la versión de firmware</div><div class="d">Busca el formato <code>36.x</code>, no la versión de especificación UEFI <code>2.x</code>.</div></div></div>
+    </div>
+    <div class="crosses reveal" style="margin-top:2rem;">
+      <div class="cross">
+        <span class="badge">≥ 36.0</span>
+        <h3>Todo bien, continúa</h3>
+        <p>Sáltate el resto de esta fase y ve directo a la Fase 2. La actualización pendiente, si la hay, se hará sola en los primeros arranques.</p>
+      </div>
+      <div class="cross soft">
+        <span class="badge">&lt; 36.0</span>
+        <h3>Un paso previo</h3>
+        <p>Graba JetPack 5.1.3 en la microSD, arranca y completa el asistente (esto agenda la actualización), deja que reinicie y la aplique. Luego continúa con la microSD de JetPack 6.2.1.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== S5 · FASE 2 microSD ===== -->
+  <section id="s5">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Fase dos</span>
+      <h2>Instalar el sistema en la microSD</h2>
+      <p class="kicker">Aquí «grabamos» el sistema operativo con todas las herramientas de IA ya incluidas.</p>
+    </div>
+    <div class="phases reveal">
+      <div class="phase"><div class="code">01</div><div><div class="q">Abre Balena Etcher</div><div class="d">En tu Windows o Mac.</div></div></div>
+      <div class="phase"><div class="code">02</div><div><div class="q">Graba la imagen</div><div class="d">Elige el archivo de JetPack 6.2.1, luego la microSD, y dale a grabar.</div></div></div>
+      <div class="phase"><div class="code">03</div><div><div class="q">Inserta y enciende</div><div class="d">Pon la microSD ya grabada en la Jetson y enciéndela.</div></div></div>
+      <div class="phase"><div class="code">04</div><div><div class="q">Asistente de Ubuntu</div><div class="d">Sigue la bienvenida: idioma, usuario, contraseña, red.</div></div></div>
+      <div class="phase"><div class="code">05</div><div><div class="q">Deja correr el firmware</div><div class="d">Se agendan actualizaciones. Paciencia con los reinicios.</div></div></div>
+      <div class="phase active"><div class="code">06</div><div><div class="q">Activa MAXN SUPER</div><div class="d">Clic en el ícono de energía de la barra de tareas y selecciona ese modo.</div><div class="state">Máximo rendimiento</div></div></div>
+    </div>
+    <div class="focal reveal" style="margin-top:2rem;">
+      <span class="eyebrow">Hito</span>
+      <p class="lead-line">En este punto ya tienes una Jetson funcionando.</p>
+      <p class="muted" style="margin-top:0.75rem;">Cuando esté estable, la subimos de la 6.2.1 a la <code>6.2.2</code> con un comando sencillo (lo vemos juntos en su momento).</p>
+    </div>
+  </section>
+
+  <!-- ===== S6 · FASE 3 SSD ===== -->
+  <section id="s6">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Fase tres</span>
+      <h2>Mudar todo al SSD NVMe</h2>
+      <p class="kicker">La microSD funciona, pero es lenta. Ahora mudamos el sistema al disco rápido, donde vivirán los contenedores, modelos y datasets.</p>
+    </div>
+    <div class="crosses reveal" style="margin-bottom:2rem;">
+      <div class="cross">
+        <span class="badge">Advertencia importante</span>
+        <h3>No copies a mano</h3>
+        <p>Nada de <code>rsync</code> ni <code>dd</code> por tu cuenta. Es la causa clásica de que la placa quede pegada sin arrancar. Usaremos scripts ya probados por la comunidad.</p>
+      </div>
+      <div class="cross soft">
+        <span class="badge">Nota de arranque</span>
+        <h3>Deja la microSD puesta</h3>
+        <p>El arranque sigue apoyándose en la tarjeta (carga desde ahí y luego «salta» al SSD). Todo el trabajo pesado ya vive en el disco rápido.</p>
+      </div>
+    </div>
+    <div class="phases reveal">
+      <div class="phase"><div class="code">01</div><div><div class="q">Confirma la detección</div><div class="d">Que el SSD NVMe esté instalado y que la Jetson lo detecte.</div></div></div>
+      <div class="phase"><div class="code">02</div><div><div class="q">Descarga rootOnNVMe</div><div class="d">Los scripts de JetsonHacks.</div></div></div>
+      <div class="phase"><div class="code">03</div><div><div class="q">Ejecuta en orden</div><div class="d">Te acompaño con los comandos exactos en vivo cuando llegues aquí.</div></div></div>
+      <div class="phase"><div class="code">04</div><div><div class="q">Reinicia</div><div class="d">Para que el sistema empiece a usar el SSD como raíz.</div></div></div>
+    </div>
+    <div class="prose reveal" style="margin-top:1.75rem;">
+      <p class="muted"><em>Opción avanzada, para más adelante:</em> si quieres liberar del todo la ranura microSD y arrancar 100% desde el SSD, existe un método editando el archivo de arranque <code>extlinux.conf</code>. Lo dejamos para cuando ya domines lo básico.</p>
+    </div>
+  </section>
+
+  <!-- ===== S7 · SÍNTESIS ===== -->
+  <section id="s7">
+    <div class="sec-head reveal">
+      <span class="eyebrow">En síntesis</span>
+      <h2>Tres movimientos</h2>
+    </div>
+    <div class="phases reveal">
+      <div class="phase"><div class="code">01</div><div><div class="q">Firmware</div><div class="d">Revisar y actualizar si hace falta. Nunca cortar la energía.</div></div></div>
+      <div class="phase"><div class="code">02</div><div><div class="q">microSD</div><div class="d">Grabar JetPack 6.2.1, primer arranque, activar MAXN SUPER.</div></div></div>
+      <div class="phase"><div class="code">03</div><div><div class="q">SSD</div><div class="d">Mudar con los scripts de JetsonHacks. No copiar a mano.</div></div></div>
+    </div>
+    <div class="sec-head reveal" style="margin-top:3rem; margin-bottom:1.25rem;">
+      <span class="eyebrow">Enlaces a mano</span>
+    </div>
+    <div class="backlog reveal">
+      <div class="item"><span class="id">↗</span><a class="t" href="https://developer.nvidia.com/embedded/jetpack-archive" target="_blank" rel="noopener">JetPack 6.2.1 y 5.1.3</a><span class="chip">developer.nvidia.com</span></div>
+      <div class="item"><span class="id">↗</span><a class="t" href="https://etcher.balena.io/" target="_blank" rel="noopener">Balena Etcher</a><span class="chip">etcher.balena.io</span></div>
+      <div class="item"><span class="id">↗</span><a class="t" href="https://github.com/jetsonhacks/rootOnNVMe" target="_blank" rel="noopener">Scripts rootOnNVMe</a><span class="chip">github.com/jetsonhacks</span></div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="grid">
+      <div class="reveal">
+        <div class="big">Un kit, no un manual suelto.</div>
+        <p class="note" style="margin-top:1.5rem;">Mismo hardware, misma base, listo para prototipo y exposición. Documentación de infraestructura para el ecosistema tecnocreativo.</p>
+      </div>
+      <div class="reveal">
+        <p class="note">Red Tecnocreativa · CRTIC<br>Guía · Jetson Orin Nano<br>JetPack 6.2.1 → 6.2.2<br>Arranque desde SSD NVMe</p>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+  /* ---- reveal on scroll ---- */
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var els = document.querySelectorAll('.reveal');
+    if (reduce || !('IntersectionObserver' in window)) {
+      els.forEach(function (el) { el.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    els.forEach(function (el, i) {
+      el.style.transitionDelay = (Math.min(i, 6) * 40) + 'ms';
+      io.observe(el);
+    });
+  })();
+
+  /* ---- living data field (CRTIC shader) — do not edit ---- */
+  (function () {
+    var canvas = document.getElementById('field');
+    var ctx = canvas.getContext('2d');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var SNOW = '#F5F5F7';
+    var RAMP = ['#FF9C7A', '#FB6E45', '#FA4515', '#DA3A12', '#B4300E'];
+
+    var W = 0, H = 0, DPR = 1;
+    var mouse = { x: 0.5, y: 0.5 };
+    var eased = { x: 0.5, y: 0.5 };
+
+    var waves = [
+      { base: 0.34, amp: 26, freq: 5.0, speed: 0.10, phase: 0.0, ci: 4, fill: 0.05, line: 0.16, depth: 0.20, dots: 3, dspeed: 0.030 },
+      { base: 0.46, amp: 34, freq: 4.2, speed: 0.13, phase: 1.7, ci: 3, fill: 0.06, line: 0.20, depth: 0.34, dots: 4, dspeed: 0.042 },
+      { base: 0.58, amp: 30, freq: 6.1, speed: 0.16, phase: 3.1, ci: 1, fill: 0.07, line: 0.24, depth: 0.50, dots: 4, dspeed: 0.036 },
+      { base: 0.70, amp: 40, freq: 3.6, speed: 0.11, phase: 4.6, ci: 2, fill: 0.08, line: 0.28, depth: 0.68, dots: 5, dspeed: 0.050 },
+      { base: 0.82, amp: 32, freq: 5.4, speed: 0.18, phase: 2.2, ci: 0, fill: 0.09, line: 0.32, depth: 0.90, dots: 5, dspeed: 0.044 }
+    ];
+
+    function hexToRgba(hex, a) {
+      var n = parseInt(hex.slice(1), 16);
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = Math.floor(W * DPR); canvas.height = Math.floor(H * DPR);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+
+    function waveY(w, xn, t) {
+      return w.base * H
+        + w.amp * Math.sin(xn * w.freq + t * w.speed + w.phase)
+        + w.amp * 0.34 * Math.sin(xn * w.freq * 2.3 + t * w.speed * 1.7 + w.phase * 1.4);
+    }
+
+    function drawGrid(px, py) {
+      var step = 46;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = hexToRgba('#6E6E73', 0.06);
+      ctx.beginPath();
+      for (var x = (px % step) - step; x < W + step; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+      for (var y = (py % step) - step; y < H + step; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+      ctx.stroke();
+    }
+
+    function drawWave(w, t) {
+      var col = RAMP[w.ci];
+      var dx = (eased.x - 0.5) * w.depth * 46;
+      var dy = (eased.y - 0.5) * w.depth * 26;
+      ctx.save(); ctx.translate(dx, dy);
+      var N = 64, i, xn, x, y;
+      ctx.beginPath(); ctx.moveTo(0, H + 60);
+      for (i = 0; i <= N; i++) { xn = i / N; x = xn * W; y = waveY(w, xn, t); ctx.lineTo(x, y); }
+      ctx.lineTo(W, H + 60); ctx.closePath();
+      var g = ctx.createLinearGradient(0, w.base * H - w.amp, 0, H);
+      g.addColorStop(0, hexToRgba(col, w.fill)); g.addColorStop(1, hexToRgba(col, 0));
+      ctx.fillStyle = g; ctx.fill();
+      ctx.beginPath();
+      for (i = 0; i <= N; i++) { xn = i / N; x = xn * W; y = waveY(w, xn, t); if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.lineWidth = 1.4; ctx.strokeStyle = hexToRgba(col, w.line); ctx.stroke();
+      for (i = 0; i < w.dots; i++) {
+        var p = ((t * w.dspeed) + i / w.dots + w.phase * 0.05) % 1; if (p < 0) p += 1;
+        x = p * W; y = waveY(w, p, t);
+        var lead = (i === 0);
+        if (lead) {
+          var halo = ctx.createRadialGradient(x, y, 0, x, y, 22);
+          halo.addColorStop(0, hexToRgba(col, 0.45)); halo.addColorStop(1, hexToRgba(col, 0));
+          ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = hexToRgba(col, lead ? 0.95 : 0.6);
+        ctx.beginPath(); ctx.arc(x, y, lead ? 3 : 2, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawSpotlight() {
+      var x = eased.x * W, y = eased.y * H, r = Math.max(W, H) * 0.28;
+      var g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, hexToRgba('#FA4515', 0.05)); g.addColorStop(1, hexToRgba('#FA4515', 0));
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+
+    function frame(t) {
+      eased.x += (mouse.x - eased.x) * 0.05; eased.y += (mouse.y - eased.y) * 0.05;
+      ctx.fillStyle = SNOW; ctx.fillRect(0, 0, W, H);
+      drawGrid((eased.x - 0.5) * 40, (eased.y - 0.5) * 30);
+      for (var i = 0; i < waves.length; i++) drawWave(waves[i], t);
+      drawSpotlight();
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    if (reduce) { frame(0); return; }
+    window.addEventListener('pointermove', function (e) {
+      mouse.x = e.clientX / window.innerWidth; mouse.y = e.clientY / window.innerHeight;
+    }, { passive: true });
+    var start = null;
+    function loop(now) { if (start === null) start = now; frame((now - start) / 1000); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  })();
+</script>
+
+</body>
+</html>
